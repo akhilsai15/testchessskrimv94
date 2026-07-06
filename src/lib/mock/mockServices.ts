@@ -4,7 +4,7 @@ import {
   mockMessages, mockNotifications, mockCommunities, 
   mockCreatorStats, mockUsers, mockAds, mockAdminData 
 } from './mockData';
-import { getAllRecords } from '../services/mediaStorage';
+import { getAllRecords, sortPostsLatestFirst } from '../services/mediaStorage';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -28,7 +28,7 @@ export const getSparks = async () => {
   // Merge: stored (own/reposted) sparks first, then mock sparks, de-duped by id
   const seen = new Set(stored.map(s => s.id));
   const merged = [...stored, ...mockSparks.filter((s: any) => !seen.has(s.id))];
-  return merged;
+  return sortPostsLatestFirst(merged);
 };
 
 // Archived = expired AND owned by the current user — other people's expired

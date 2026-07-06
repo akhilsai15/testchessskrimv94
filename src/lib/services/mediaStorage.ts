@@ -54,10 +54,41 @@ export async function saveRecord(store: 'vibes' | 'pulses' | 'sparks', record: a
   }
 }
 
+export function getTimestampFromTimeString(timeStr?: string): number {
+  if (!timeStr) return 0;
+  const lower = timeStr.toLowerCase().trim();
+  if (lower === 'now' || lower === 'just now') {
+    return Date.now();
+  }
+  const match = lower.match(/^(\d+)(m|h|d|w)\s*(ago)?$/);
+  if (match) {
+    const value = parseInt(match[1], 10);
+    const unit = match[2];
+    let offset = 0;
+    if (unit === 'm') offset = value * 60 * 1000;
+    else if (unit === 'h') offset = value * 3600 * 1000;
+    else if (unit === 'd') offset = value * 24 * 3600 * 1000;
+    else if (unit === 'w') offset = value * 7 * 24 * 3600 * 1000;
+    return Date.now() - offset;
+  }
+  // Try direct Date parsing if it's an ISO/RFC/formatted string
+  const parsed = Date.parse(timeStr);
+  if (!isNaN(parsed)) return parsed;
+  return 0;
+}
+
+export function sortPostsLatestFirst<T extends { createdAt?: number; time?: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    const timeA = a.createdAt || getTimestampFromTimeString(a.time) || 0;
+    const timeB = b.createdAt || getTimestampFromTimeString(b.time) || 0;
+    return timeB - timeA;
+  });
+}
+
 export async function getAllRecords(store: 'vibes' | 'pulses' | 'sparks'): Promise<any[]> {
   try {
     const db = await getDB();
-    return new Promise<any[]>((resolve, reject) => {
+    const records = await new Promise<any[]>((resolve, reject) => {
       const tx = db.transaction(store, 'readonly');
       const os = tx.objectStore(store);
       const request = os.getAll();
@@ -68,6 +99,7 @@ export async function getAllRecords(store: 'vibes' | 'pulses' | 'sparks'): Promi
         reject(request.error);
       };
     });
+    return sortPostsLatestFirst(records);
   } catch (error) {
     console.error(`IndexedDB getAllRecords got exception for store ${store}`, error);
     return [];

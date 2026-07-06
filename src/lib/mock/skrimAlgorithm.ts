@@ -363,7 +363,7 @@ export function assembleFeed(
   const regularPosts = feed.filter(p => p.type !== 'suggested_user' && p.type !== 'pulse_battle' && p.type !== 'collab_post');
   const specialCards  = feed.filter(p => p.type === 'suggested_user' || p.type === 'pulse_battle' || p.type === 'collab_post');
 
-  regularPosts.sort((a, b) => b.skrimScore - a.skrimScore);
+  regularPosts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
   // Re-weave special cards back into their original positions
   const sorted: any[] = [];

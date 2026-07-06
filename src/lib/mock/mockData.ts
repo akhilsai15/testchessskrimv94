@@ -55,6 +55,7 @@ export const mockPosts = Array.from({ length: 20 }).map((_, i) => ({
   comments: Math.floor(Math.random() * 1000),
   shares: Math.floor(Math.random() * 500),
   time: `${i + 1}h ago`,
+  createdAt: Date.now() - (i + 1) * 3600000,
   audioContext: `♫ Trending Audio ${i}`,
   isLiked: false,
   isSaved: false,

@@ -314,7 +314,9 @@ export default function IdentityScreen() {
             comments: getPostCommentCount(p.id, p.comments),
           };
         });
-      setPosts([...updatedCustom, ...filteredMocks]);
+      const combined = [...updatedCustom, ...filteredMocks];
+      combined.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
+      setPosts(combined);
     };
 
     const loadUserVibes = async () => {
@@ -341,7 +343,8 @@ export default function IdentityScreen() {
           image: v.thumbnail || v.image || '',
         }));
 
-      setUserVibes(updatedCustom);
+      const sortedCustomVibes = [...updatedCustom].sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
+      setUserVibes(sortedCustomVibes);
     };
 
     loadUserPosts();

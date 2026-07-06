@@ -2701,6 +2701,7 @@ export default function PulseScreen() {
     });
     // Compute group-level hasViewed: true only if ALL sparks in the group have been viewed
     Object.values(groups).forEach((group: any) => {
+      group.sparks.sort((a: any, b: any) => (a.createdAt || 0) - (b.createdAt || 0));
       group.hasViewed = group.sparks.length > 0 && group.sparks.every((s: any) => s.hasViewed || viewedSparks.has(s.id));
     });
     return Object.values(groups).sort((a, b) => {
@@ -2708,7 +2709,9 @@ export default function PulseScreen() {
       if (!a.isOwn && b.isOwn) return 1;
       if (!a.hasViewed && b.hasViewed) return -1;
       if (a.hasViewed && !b.hasViewed) return 1;
-      return 0;
+      const aNewest = Math.max(...a.sparks.map((s: any) => s.createdAt || 0), 0);
+      const bNewest = Math.max(...b.sparks.map((s: any) => s.createdAt || 0), 0);
+      return bNewest - aNewest;
     });
   }, [sparks, viewedSparks]);
 
@@ -2788,7 +2791,9 @@ export default function PulseScreen() {
         const filteredSynced = synced.filter(filterPost);
         const filteredReposts = reposts.filter(filterPost);
         const filteredCustomPosts = customPosts.filter(filterPost);
-        setPosts(page === 0 ? [...filteredCustomPosts, ...filteredReposts, ...filteredSynced] : filteredSynced);
+        const combined = page === 0 ? [...filteredCustomPosts, ...filteredReposts, ...filteredSynced] : filteredSynced;
+        combined.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        setPosts(combined);
         setLoading(false);
       }
     }, append ? 700 : 900);
@@ -2906,7 +2911,10 @@ export default function PulseScreen() {
     const pending = pendingNewPulsesRef.current;
     pendingNewPulsesRef.current = []; // Clear them since we are displaying them now!
 
-    setPosts([...pending, ...filteredCustomPosts, ...filteredReposts, ...freshSynced]);
+    const combined = [...pending, ...filteredCustomPosts, ...filteredReposts, ...freshSynced];
+    combined.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    setPosts(combined);
     setNewPostsCount(0);
   };
 

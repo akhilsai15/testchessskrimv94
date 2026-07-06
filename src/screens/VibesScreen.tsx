@@ -1761,6 +1761,7 @@ export default function VibesScreen() {
         } catch (e) {}
         const filtered = Array.isArray(parsed) ? parsed : [];
         const result = filtered.filter((v: any) => v && v.id && !deletedVibeIds.includes(v.id));
+        result.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
         setUserVibes(result);
       } catch (e) {
         console.error("Failed to load custom vibes from IndexedDB:", e);
@@ -1799,6 +1800,7 @@ export default function VibesScreen() {
       } catch (e) {}
       const filtered = Array.isArray(parsed) ? parsed : [];
       const result = filtered.filter((v: any) => v && v.id && !deletedVibeIds.includes(v.id));
+      result.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
       setUserVibes(result);
     } catch (e) {
       console.error("Failed to delete vibe from IndexedDB:", e);
@@ -1858,7 +1860,8 @@ export default function VibesScreen() {
     setCurrentIdx(0);
     setTimeout(() => {
       if (activeFilter === 'myvibes') {
-        setVibes(userVibes);
+        const sortedMyVibes = [...userVibes].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        setVibes(sortedMyVibes);
         setLoading(false);
         return;
       }
@@ -1869,12 +1872,15 @@ export default function VibesScreen() {
 
       // For "trending" sort by score desc already; "new" = reverse freshness; "following"/"nearby" = seeded different set
       let initial = assembleVibesFeed(mood, offset, 12);
-      if (activeFilter === 'trending') initial = [...initial].sort((a, b) => b.vibeScore - a.vibeScore);
-      if (activeFilter === 'new') initial = [...initial].sort((a, b) => b.createdAt - a.createdAt);
-      
-      // Your own recently posted vibes in this session lead the For You feed
-      if (activeFilter === 'foryou' && sessionUserVibes.length > 0) {
-        initial = [...sessionUserVibes, ...initial];
+      if (activeFilter === 'trending') {
+        initial = [...initial].sort((a, b) => b.vibeScore - a.vibeScore);
+      } else if (activeFilter === 'new') {
+        initial = [...userVibes, ...initial].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      } else if (activeFilter === 'foryou') {
+        const customVibesNotSession = userVibes.filter(uv => !sessionUserVibes.some(sv => sv.id === uv.id));
+        initial = [...sessionUserVibes, ...customVibesNotSession, ...initial].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      } else {
+        initial = [...userVibes, ...initial].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       }
 
       let deletedVibeIds: string[] = [];
