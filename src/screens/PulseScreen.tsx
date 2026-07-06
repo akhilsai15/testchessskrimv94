@@ -1851,6 +1851,7 @@ function PulseCreateSheet({ isOpen, onClose, currentUser, onPost, onSchedule, dr
       isSaved: false,
       mood,
       music,
+      audioUrl: music?.url || undefined,
       taggedUsers,
     };
 

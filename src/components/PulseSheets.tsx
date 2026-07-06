@@ -246,17 +246,34 @@ export function PulseReshareSheet({
       const stored: any[] = await getAllRecords('sparks');
       const sparkId = `postspark_${post.id}`;
       if (!stored.some(s => s.id === sparkId)) {
+        const isMultiImage = post.images && post.images.length > 1;
         const thumbnail = post.image || post.images?.[0] || null;
+        const video = post.video || post.videoSrc || null;
+        
+        let sparkType = 'text';
+        if (video) {
+          sparkType = 'video';
+        } else if (isMultiImage) {
+          sparkType = 'multi_image';
+        } else if (thumbnail) {
+          sparkType = 'image';
+        }
+
         const newSpark = {
           id: sparkId, user: currentUser, isOwn: true, isRepost: true,
           repostedFrom: post.handle, createdAt: Date.now(),
           expiresAt: Date.now() + 24 * 60 * 60 * 1000,
           hasViewed: false, views: 0, energy: 'COLD',
           reactions: { pulse: 0, blaze: 0, vibe: 0 },
-          type: thumbnail ? 'image' : 'text', image: thumbnail,
+          type: sparkType,
+          image: thumbnail || (video ? 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=400&h=700&fit=crop' : null),
+          images: isMultiImage ? post.images : undefined,
+          video: video,
           text: post.caption || post.text || '',
           caption: post.caption || post.text || '', sourcePostId: post.id,
           background: 'purple',
+          music_title: post.audio || post.music_title || post.music?.title || null,
+          audioUrl: post.audioUrl || post.music?.url || undefined,
         };
         await saveRecord('sparks', newSpark);
         window.dispatchEvent(new CustomEvent('skrimchat_spark_reposted', { detail: newSpark }));
@@ -507,8 +524,19 @@ export function PulseSendSheet({
       const stored = await getAllRecords('sparks');
       const sparkId = isSpark ? `repost_${post.id}_${Date.now()}` : `postspark_${post.id}`;
       if (!stored.some((s: any) => s.id === sparkId)) {
+        const isMultiImage = post.images && post.images.length > 1;
         const thumbnail = post.image || post.images?.[0] || null;
         const video = post.video || post.videoSrc || null;
+        
+        let sparkType = 'text';
+        if (video) {
+          sparkType = 'video';
+        } else if (isMultiImage) {
+          sparkType = 'multi_image';
+        } else if (thumbnail) {
+          sparkType = 'image';
+        }
+
         let activeUser = currentUser;
         if (!activeUser) {
           const storedUser = localStorage.getItem('skrimchat_user') || localStorage.getItem('skrimchat_mock_user');
@@ -542,13 +570,15 @@ export function PulseSendSheet({
           expiresAt: Date.now() + 24 * 60 * 60 * 1000,
           hasViewed: false, views: 0, energy: 'COLD',
           reactions: { pulse: 0, blaze: 0, vibe: 0 },
-          type: video ? 'video' : (thumbnail ? 'image' : 'text'),
+          type: sparkType,
           image: thumbnail || (video ? 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=400&h=700&fit=crop' : null),
+          images: isMultiImage ? post.images : undefined,
           video: video,
           text: post.caption || post.text || '',
           caption: post.caption || post.text || '', sourcePostId: post.id,
           background: 'purple',
-          music_title: post.audio || post.music_title || null,
+          music_title: post.audio || post.music_title || post.music?.title || null,
+          audioUrl: post.audioUrl || post.music?.url || undefined,
         };
         await saveRecord('sparks', newSpark);
         window.dispatchEvent(new CustomEvent('skrimchat_spark_reposted', { detail: newSpark }));
@@ -574,6 +604,7 @@ export function PulseSendSheet({
       onClose();
     } catch (e) {
       console.error("Failed to share as spark in PulseSendSheet:", e);
+      alert("Failed to share post as a spark. Your browser storage might be full.");
     }
   };
   const [activeView, setActiveView] = useState<'share' | 'connect'>('share');

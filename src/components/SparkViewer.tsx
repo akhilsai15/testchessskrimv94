@@ -34,6 +34,8 @@ import {
   Link2,
   Timer,
   Bell,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { SKRIM_REACTIONS, mockUsers } from "../lib/mock/mockData";
 import { MOCK_CHATS } from "../lib/mock/mockChatDirectory";
@@ -333,6 +335,33 @@ export function SparkViewer({
   const [showEndScreen, setShowEndScreen] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [isMuted, setIsMuted] = useState(false);
+  const [galleryIdx, setGalleryIdx] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const group = groupedSparks[userIndex];
+  const spark = group?.sparks[sparkIndex];
+
+  // Reset gallery and audio seek position when spark shifts
+  useEffect(() => {
+    setGalleryIdx(0);
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+    }
+  }, [sparkIndex, userIndex, spark?.id]);
+
+  // Unified precise audio controller for sparks
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.muted = isMuted;
+      if (isPaused || showInsights || activeSheet || radialMenuOpen) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play().catch((err) => {
+          console.warn("Spark audio autoplay failed:", err);
+        });
+      }
+    }
+  }, [isPaused, showInsights, activeSheet, radialMenuOpen, sparkIndex, userIndex, isMuted, spark?.audioUrl]);
 
   useEffect(() => {
     if (activeSheet === "highlight") {
@@ -346,9 +375,6 @@ export function SparkViewer({
       }
     }
   }, [activeSheet]);
-
-  const group = groupedSparks[userIndex];
-  const spark = group?.sparks[sparkIndex];
 
   const isOwnSpark = group && (group.userId === currentUser?.id || group.isOwn);
 
@@ -1195,32 +1221,59 @@ export function SparkViewer({
                             playsInline
                             onError={() => console.log('Spark video play error')}
                           />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setIsMuted(!isMuted);
-                              if (videoRef.current) {
-                                videoRef.current.muted = !isMuted;
-                              }
-                            }}
-                            style={{
-                              position: "absolute",
-                              top: 64, // Pushed down slightly to clear progress bar
-                              left: 16,
-                              background: "rgba(0,0,0,0.6)",
-                              border: "none",
-                              borderRadius: "50%",
-                              width: 36,
-                              height: 36,
-                              color: "white",
-                              fontSize: 16,
-                              zIndex: 10,
-                              cursor: "pointer"
-                            }}
-                          >
-                            {isMuted ? "🔇" : "🔊"}
-                          </button>
                         </>
+                      ) : spark.type === "multi_image" ? (
+                        <div className="relative w-full h-full bg-black flex items-center justify-center">
+                          {(() => {
+                            const images = spark.images || [spark.image];
+                            const currentImg = images[galleryIdx] || spark.image;
+                            return (
+                              <>
+                                <AnimatePresence mode="wait">
+                                  <motion.img
+                                    key={galleryIdx}
+                                    src={currentImg}
+                                    alt="spark"
+                                    className="w-full h-full object-cover"
+                                    initial={{ opacity: 0, x: 50 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -50 }}
+                                    transition={{ duration: 0.2 }}
+                                  />
+                                </AnimatePresence>
+
+                                {/* Dots */}
+                                <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 bg-black/40 px-2.5 py-1.5 rounded-full backdrop-blur-sm">
+                                  {images.map((_: any, i: number) => (
+                                    <div
+                                      key={i}
+                                      onClick={(e) => { e.stopPropagation(); setGalleryIdx(i); }}
+                                      className={`w-1.5 h-1.5 rounded-full cursor-pointer transition-all ${i === galleryIdx ? 'bg-white w-3' : 'bg-white/40'}`}
+                                    />
+                                  ))}
+                                </div>
+
+                                {/* Nav buttons */}
+                                {galleryIdx > 0 && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setGalleryIdx(i => i - 1); }}
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/60 rounded-full flex items-center justify-center z-10 hover:bg-black/80 transition-colors"
+                                  >
+                                    <ChevronLeft className="w-5 h-5 text-white" />
+                                  </button>
+                                )}
+                                {galleryIdx < images.length - 1 && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setGalleryIdx(i => i + 1); }}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/60 rounded-full flex items-center justify-center z-10 hover:bg-black/80 transition-colors"
+                                  >
+                                    <ChevronRight className="w-5 h-5 text-white" />
+                                  </button>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
                       ) : (
                         <div className="relative w-full h-full">
                           <img
@@ -1248,6 +1301,15 @@ export function SparkViewer({
                           ))}
                         </div>
                       )}
+                      
+                      {spark?.audioUrl && (
+                        <audio
+                          ref={audioRef}
+                          src={spark.audioUrl}
+                          loop
+                          preload="auto"
+                        />
+                      )}
                     </motion.div>
                   </AnimatePresence>
                 </div>
@@ -1255,6 +1317,39 @@ export function SparkViewer({
                 {/* Top/Bottom Gradient Overlays for readability */}
                 <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/70 via-black/30 to-transparent z-10 pointer-events-none" />
                 <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-10 pointer-events-none" />
+
+                {/* Universal Mute Button for Audio/Video Sparks */}
+                {spark && (spark.type === "video" || spark.audioUrl) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const nextMute = !isMuted;
+                      setIsMuted(nextMute);
+                      if (videoRef.current) {
+                        videoRef.current.muted = nextMute;
+                      }
+                      if (audioRef.current) {
+                        audioRef.current.muted = nextMute;
+                      }
+                    }}
+                    style={{
+                      position: "absolute",
+                      top: 64, // Pushed down slightly to clear progress bar
+                      left: 16,
+                      background: "rgba(0,0,0,0.6)",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: 36,
+                      height: 36,
+                      color: "white",
+                      fontSize: 16,
+                      zIndex: 30,
+                      cursor: "pointer"
+                    }}
+                  >
+                    {isMuted ? "🔇" : "🔊"}
+                  </button>
+                )}
 
                 {/* UI Layer */}
                 <div className="relative z-20 flex-1 flex flex-col w-full h-full pt-safe-top">

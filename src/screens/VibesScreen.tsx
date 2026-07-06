@@ -606,7 +606,7 @@ function VibeCard({
               ref={videoRef}
               src={vibe.videoSrc || undefined}
               autoPlay={isActive}
-              muted={muted}
+              muted={muted || !!vibe.audioUrl || !!vibe.audio}
               playsInline
               className="absolute inset-0 w-full h-full object-contain"
               initial={{ opacity: 0 }}
@@ -1052,6 +1052,7 @@ function VibeCreateSheet({ isOpen, onClose, currentUser, onPost }: {
   const [mediaKind, setMediaKind] = useState<'image' | 'video' | null>(null);
   const [mood, setMood] = useState<string>(getDefaultMood());
   const [music, setMusic] = useState<{ url: string; title: string; start_ms: number } | null>(null);
+  const [useOriginalAudio, setUseOriginalAudio] = useState<boolean>(true);
   const [imageDuration, setImageDuration] = useState<number>(15);
   const [isReading, setIsReading] = useState(false);
   const [showMoodPicker, setShowMoodPicker] = useState(false);
@@ -1068,6 +1069,7 @@ function VibeCreateSheet({ isOpen, onClose, currentUser, onPost }: {
     setMediaKind(null);
     setMood(getDefaultMood());
     setMusic(null);
+    setUseOriginalAudio(true);
     setImageDuration(15);
     setIsReading(false);
     setShowMoodPicker(false);
@@ -1135,10 +1137,10 @@ function VibeCreateSheet({ isOpen, onClose, currentUser, onPost }: {
       avatar: currentUser?.avatar || '',
       thumbnail: postType === 'image' ? mediaUrl! : '',
       caption,
-      audio: music?.title || 'Original Audio 🎤',
-      audioUrl: music?.url || undefined,
+      audio: useOriginalAudio ? 'Original Audio 🎤' : (music?.title || 'Original Audio 🎤'),
+      audioUrl: useOriginalAudio ? undefined : (music?.url || undefined),
       duration: postType === 'image' ? imageDuration : (postType === 'text' ? 15 : undefined),
-      start_ms: music ? music.start_ms : undefined,
+      start_ms: useOriginalAudio ? undefined : (music ? music.start_ms : undefined),
       mood,
       createdAt: Date.now(),
       likes: 0,
@@ -1321,7 +1323,7 @@ function VibeCreateSheet({ isOpen, onClose, currentUser, onPost }: {
                   {mediaUrl ? (
                     <div className="relative w-full aspect-[16/10] max-h-[30vh] rounded-2xl overflow-hidden bg-black border border-white/10 shadow-inner">
                       {mediaKind === 'video' ? (
-                        <video src={mediaUrl} className="w-full h-full object-cover" controls />
+                        <video src={mediaUrl} className="w-full h-full object-cover" controls muted={!useOriginalAudio} />
                       ) : (
                         <img src={mediaUrl} alt="" className="w-full h-full object-cover" />
                       )}
@@ -1408,21 +1410,35 @@ function VibeCreateSheet({ isOpen, onClose, currentUser, onPost }: {
 
               {/* Selected Music Display */}
               {music && (
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#00F0FF]/5 border border-[#00F0FF]/15">
-                  <div className="flex items-center gap-2.5 overflow-hidden">
-                    <Music className="w-4 h-4 text-[#00F0FF] shrink-0 animate-pulse" />
-                    <div className="text-left overflow-hidden">
-                      <p className="text-[#00F0FF] text-xs font-bold truncate">{music.title}</p>
-                      <p className="text-white/40 text-[10px] truncate">Loop starting from {(music.start_ms / 1000).toFixed(0)}s</p>
+                <div className="flex flex-col gap-2 p-3.5 rounded-2xl bg-[#00F0FF]/5 border border-[#00F0FF]/15">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 overflow-hidden">
+                      <Music className="w-4 h-4 text-[#00F0FF] shrink-0 animate-pulse" />
+                      <div className="text-left overflow-hidden">
+                        <p className="text-[#00F0FF] text-xs font-bold truncate">{music.title}</p>
+                        <p className="text-white/40 text-[10px] truncate">Loop starting from {(music.start_ms / 1000).toFixed(0)}s</p>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => { setMusic(null); setUseOriginalAudio(true); }}
+                      className="p-1 text-white/40 hover:text-red-400 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setMusic(null)}
-                    className="p-1 text-white/40 hover:text-red-400 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  {postType === 'video' && (
+                    <div className="flex items-center gap-2 mt-1 border-t border-white/5 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setUseOriginalAudio(!useOriginalAudio)}
+                        className={`text-[10px] font-bold px-2 py-1 rounded transition-colors ${useOriginalAudio ? 'bg-[#00F0FF]/20 text-[#00F0FF]' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                      >
+                        {useOriginalAudio ? '🔊 Playing Original Audio' : '🔇 Muted Video (Using Custom Music)'}
+                      </button>
+                      <span className="text-[9px] text-white/30">Click to toggle</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -171,7 +171,8 @@ export function ImmersivePostViewer({ initialIndex, type, urls, user, users, onC
     const getAudioUrl = () => {
       if (!currentPost) return null;
       if (currentPost.audioUrl) return currentPost.audioUrl;
-      const title = currentPost.audio || '';
+      if (currentPost.music?.url) return currentPost.music.url;
+      const title = currentPost.audio || currentPost.music?.title || currentPost.music?.name || '';
       if (!title) return null;
       
       const found = CURATED_TRACKS.find(t => 
