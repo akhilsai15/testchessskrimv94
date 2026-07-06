@@ -331,7 +331,7 @@ export function MusicPicker({ isOpen, onClose, onSelect, currentMusic, context =
   };
 
   const handleConfirm = () => {
-    if (tab === 'library' && selectedTrack) {
+    if (selectedTrack) {
       onSelect({ 
         url: selectedTrack.url, 
         title: `${selectedTrack.title} – ${selectedTrack.artist}`, 

@@ -1117,6 +1117,7 @@ function VibeCard({
           audio: vibe.audio || '',
           music_title: vibe.audio || undefined,
           audioUrl: vibe.audioUrl || getPlayableAudioUrl(vibe) || undefined,
+          backgroundTheme: vibe.bgColor || vibe.colorTag,
           type: vibe.type || undefined,
           mood: vibe.mood || ''
         }}
