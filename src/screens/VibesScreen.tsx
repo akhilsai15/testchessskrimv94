@@ -332,6 +332,8 @@ function VibeCard({
     const getAudioUrl = () => {
       if (vibe.audioUrl) return vibe.audioUrl;
       const title = vibe.audio || '';
+      if (title.toLowerCase().includes('original audio')) return null;
+      
       const found = CURATED_TRACKS.find(t => 
         title.toLowerCase().includes(t.title.toLowerCase()) || 
         t.title.toLowerCase().includes(title.toLowerCase())
@@ -345,6 +347,10 @@ function VibeCard({
 
     const audioUrl = getAudioUrl();
     if (!audioUrl) {
+      if (vibe.videoSrc) {
+        // Video manages its own playback progress via handleTimeUpdate
+        return;
+      }
       // Fallback virtual progress timeline for silent or text-only vibes
       const interval = setInterval(() => {
         if (isPlaying && isActive) {
@@ -606,7 +612,7 @@ function VibeCard({
               ref={videoRef}
               src={vibe.videoSrc || undefined}
               autoPlay={isActive}
-              muted={muted || !!vibe.audioUrl || !!vibe.audio}
+              muted={muted || !!vibe.audioUrl}
               playsInline
               className="absolute inset-0 w-full h-full object-contain"
               initial={{ opacity: 0 }}
