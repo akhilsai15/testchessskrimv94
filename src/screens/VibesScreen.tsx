@@ -450,15 +450,53 @@ function VibeCard({
     const durationSec = duration;
     const endSec = startSec + durationSec;
 
+    let retryOnInteraction: (() => void) | null = null;
+
+    const cleanupInteractionListeners = () => {
+      if (retryOnInteraction) {
+        window.removeEventListener('click', retryOnInteraction);
+        window.removeEventListener('touchstart', retryOnInteraction);
+        window.removeEventListener('keydown', retryOnInteraction);
+        window.removeEventListener('mousedown', retryOnInteraction);
+        retryOnInteraction = null;
+      }
+    };
+
+    const tryPlayAudio = () => {
+      if (isPlaying && isActive) {
+        audio.play().catch((err) => {
+          console.warn("Autoplay blocked video/audio track:", err);
+          
+          // Set up retry on user interaction
+          if (!retryOnInteraction) {
+            retryOnInteraction = () => {
+              if (isPlaying && isActive) {
+                audio.play()
+                  .then(() => {
+                    console.log("Audio successfully played after user interaction");
+                    cleanupInteractionListeners();
+                  })
+                  .catch((playErr) => {
+                    console.warn("Retry play failed:", playErr);
+                  });
+              }
+            };
+            window.addEventListener('click', retryOnInteraction, { once: true });
+            window.addEventListener('touchstart', retryOnInteraction, { once: true });
+            window.addEventListener('keydown', retryOnInteraction, { once: true });
+            window.addEventListener('mousedown', retryOnInteraction, { once: true });
+          }
+        });
+      }
+    };
+
     // Handle initial play/pause and position
     if (isPlaying && isActive) {
       if (audio.paused) {
         if (audio.currentTime < startSec || audio.currentTime >= endSec) {
           audio.currentTime = startSec;
         }
-        audio.play().catch((err) => {
-          console.warn("Autoplay blocked video/audio track:", err);
-        });
+        tryPlayAudio();
       }
     } else {
       audio.pause();
@@ -471,7 +509,7 @@ function VibeCard({
       if (isPlaying && isActive) {
         // Force play if it was paused
         if (audio.paused) {
-          audio.play().catch(() => {});
+          tryPlayAudio();
         }
 
         const curr = audio.currentTime;
@@ -500,6 +538,7 @@ function VibeCard({
 
     return () => {
       clearInterval(interval);
+      cleanupInteractionListeners();
       audio.pause();
     };
   }, [isPlaying, isActive, muted, vibe.videoSrc, vibe.audio, vibe.audioUrl, vibe.start_ms, duration, onNext]);
@@ -1691,6 +1730,8 @@ export default function VibesScreen() {
   };
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const isProgrammaticScroll = useRef(false);
+  const programmaticScrollTimeout = useRef<any>(null);
 
   // Session-only user vibes uploaded in the current session so that they get immediate
   // visual feedback in the For You feed without permanently dominating index 0 on future reloads.
@@ -1900,6 +1941,19 @@ export default function VibesScreen() {
     const container = e.currentTarget;
     const scrollPos = container.scrollTop;
     const height = container.clientHeight || 1;
+
+    if (isProgrammaticScroll.current) {
+      const targetScrollTop = currentIdx * height;
+      if (Math.abs(scrollPos - targetScrollTop) < 5) {
+        isProgrammaticScroll.current = false;
+        if (programmaticScrollTimeout.current) {
+          clearTimeout(programmaticScrollTimeout.current);
+          programmaticScrollTimeout.current = null;
+        }
+      }
+      return;
+    }
+
     const index = Math.round(scrollPos / height);
     if (index !== currentIdx && index >= 0 && index < vibes.length) {
       setCurrentIdx(index);
@@ -1913,6 +1967,14 @@ export default function VibesScreen() {
         const height = container.clientHeight;
         const targetScrollTop = currentIdx * height;
         if (Math.abs(container.scrollTop - targetScrollTop) > 10) {
+          isProgrammaticScroll.current = true;
+          if (programmaticScrollTimeout.current) {
+            clearTimeout(programmaticScrollTimeout.current);
+          }
+          programmaticScrollTimeout.current = setTimeout(() => {
+            isProgrammaticScroll.current = false;
+          }, 800);
+
           container.scrollTo({
             top: targetScrollTop,
             behavior: 'smooth'
@@ -1920,6 +1982,11 @@ export default function VibesScreen() {
         }
       }
     }
+    return () => {
+      if (programmaticScrollTimeout.current) {
+        clearTimeout(programmaticScrollTimeout.current);
+      }
+    };
   }, [currentIdx]);
 
   const FILTERS = [
