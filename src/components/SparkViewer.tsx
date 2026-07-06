@@ -1259,24 +1259,43 @@ export function SparkViewer({
                           />
                         </>
                       ) : spark.type === "multi_image" ? (
-                        <div className="relative w-full h-full bg-black flex items-center justify-center">
+                        <div className="relative w-full h-full bg-black overflow-hidden select-none">
                           {(() => {
                             const images = spark.images || [spark.image];
-                            const currentImg = images[galleryIdx] || spark.image;
                             return (
                               <>
-                                <AnimatePresence mode="wait">
-                                  <motion.img
-                                    key={galleryIdx}
-                                    src={currentImg}
-                                    alt="spark"
-                                    className="w-full h-full object-cover"
-                                    initial={{ opacity: 0, x: 50 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -50 }}
-                                    transition={{ duration: 0.2 }}
-                                  />
-                                </AnimatePresence>
+                                <motion.div
+                                  className="flex h-full w-full touch-pan-y cursor-grab active:cursor-grabbing"
+                                  animate={{ x: `-${galleryIdx * 100}%` }}
+                                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                  drag="x"
+                                  dragConstraints={{ left: 0, right: 0 }}
+                                  dragElastic={0.2}
+                                  onDragEnd={(e, info) => {
+                                    const swipeThreshold = 45;
+                                    if (info.offset.x < -swipeThreshold) {
+                                      if (galleryIdx < images.length - 1) {
+                                        setProgress(0);
+                                        setGalleryIdx(galleryIdx + 1);
+                                      }
+                                    } else if (info.offset.x > swipeThreshold) {
+                                      if (galleryIdx > 0) {
+                                        setProgress(0);
+                                        setGalleryIdx(galleryIdx - 1);
+                                      }
+                                    }
+                                  }}
+                                >
+                                  {images.map((img: string, idx: number) => (
+                                    <div key={idx} className="w-full h-full flex-shrink-0 relative">
+                                      <img
+                                        src={img}
+                                        alt={`spark-${idx}`}
+                                        className="w-full h-full object-cover pointer-events-none"
+                                      />
+                                    </div>
+                                  ))}
+                                </motion.div>
 
                                 {/* Dots */}
                                 <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 bg-black/40 px-2.5 py-1.5 rounded-full backdrop-blur-sm">
