@@ -341,6 +341,8 @@ export function SparkViewer({
   const group = groupedSparks[userIndex];
   const spark = group?.sparks[sparkIndex];
 
+  const isActive = !isPaused && !showInsights && !activeSheet && !radialMenuOpen;
+
   // Reset gallery and audio/video seek position when spark shifts
   useEffect(() => {
     setGalleryIdx(0);
@@ -356,7 +358,7 @@ export function SparkViewer({
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.muted = isMuted;
-      if (isPaused || showInsights || activeSheet || radialMenuOpen) {
+      if (!isActive) {
         audioRef.current.pause();
       } else {
         audioRef.current.play().catch((err) => {
@@ -364,7 +366,7 @@ export function SparkViewer({
         });
       }
     }
-  }, [isPaused, showInsights, activeSheet, radialMenuOpen, sparkIndex, userIndex, isMuted, spark?.audioUrl, spark?.id]);
+  }, [isActive, sparkIndex, userIndex, isMuted, spark?.audioUrl, spark?.id]);
 
   useEffect(() => {
     if (activeSheet === "highlight") {
@@ -433,13 +435,14 @@ export function SparkViewer({
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.muted = isMuted || !!spark?.audioUrl;
-      if (isPaused || showInsights || activeSheet || radialMenuOpen) {
+      videoRef.current.loop = isActive;
+      if (!isActive) {
         videoRef.current.pause();
       } else {
         videoRef.current.play().catch(() => {});
       }
     }
-  }, [isPaused, showInsights, activeSheet, radialMenuOpen, sparkIndex, userIndex, spark?.id, isMuted, spark?.audioUrl]);
+  }, [isActive, sparkIndex, userIndex, spark?.id, isMuted, spark?.audioUrl]);
 
   useEffect(() => {
     setProgress(0);
@@ -467,7 +470,7 @@ export function SparkViewer({
   }, [userIndex, sparkIndex, spark?.id, onSparkViewed]);
 
   useEffect(() => {
-    if (isPaused || showInsights || activeSheet || radialMenuOpen || !spark) return;
+    if (!isActive || !spark) return;
 
     progressInterval.current = setInterval(() => {
       setProgress((p) => {
@@ -485,10 +488,8 @@ export function SparkViewer({
     userIndex,
     sparkIndex,
     galleryIdx,
-    isPaused,
-    showInsights,
-    activeSheet,
-    radialMenuOpen,
+    isActive,
+    spark,
     DURATION,
   ]);
 
@@ -1250,10 +1251,10 @@ export function SparkViewer({
                             ref={videoRef}
                             src={spark.video || "https://www.w3schools.com/html/mov_bbb.mp4"}
                             className="w-full h-full object-cover"
-                            autoPlay={!isPaused && !showInsights && !activeSheet && !radialMenuOpen}
+                            autoPlay={isActive}
                             muted={isMuted || !!spark.audioUrl}
                             controls={false}
-                            loop
+                            loop={isActive}
                             playsInline
                             onError={() => console.log('Spark video play error')}
                           />
@@ -1361,10 +1362,10 @@ export function SparkViewer({
                         <audio
                           ref={audioRef}
                           src={spark.audioUrl}
-                          loop
+                          loop={isActive}
                           preload="auto"
                           muted={isMuted}
-                          autoPlay={!isPaused && !showInsights && !activeSheet && !radialMenuOpen}
+                          autoPlay={isActive}
                         />
                       )}
                     </motion.div>
