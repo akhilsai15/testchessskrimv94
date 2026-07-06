@@ -564,6 +564,7 @@ export function PulseSendSheet({
           hasViewed: false,
           views: 0,
           reactions: { pulse: 0, blaze: 0, vibe: 0 },
+          type: (post.images && post.images.length > 1) ? 'multi_image' : (post.type || sparkType),
         } : {
           id: sparkId, user: activeUser, isOwn: true, isRepost: true,
           repostedFrom: post.handle || post.user?.username || 'user', createdAt: Date.now(),

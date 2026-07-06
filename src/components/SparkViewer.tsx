@@ -484,6 +484,7 @@ export function SparkViewer({
   }, [
     userIndex,
     sparkIndex,
+    galleryIdx,
     isPaused,
     showInsights,
     activeSheet,
@@ -521,6 +522,13 @@ export function SparkViewer({
 
   const handleNext = () => {
     setProgress(0);
+    if (spark && spark.type === "multi_image") {
+      const images = spark.images || [spark.image];
+      if (galleryIdx < images.length - 1) {
+        setGalleryIdx((idx) => idx + 1);
+        return;
+      }
+    }
     const g = groupedSparks[userIndex];
     if (sparkIndex < g.sparks.length - 1) {
       setSparkIndex((s) => s + 1);
@@ -531,6 +539,12 @@ export function SparkViewer({
 
   const handlePrev = () => {
     setProgress(0);
+    if (spark && spark.type === "multi_image") {
+      if (galleryIdx > 0) {
+        setGalleryIdx((idx) => idx - 1);
+        return;
+      }
+    }
     if (sparkIndex > 0) {
       setSparkIndex((s) => s - 1);
     } else {
@@ -607,8 +621,26 @@ export function SparkViewer({
     const timeDiff = Date.now() - pointerDownTime.current;
 
     if (Math.abs(diff) > 50) {
-      if (diff > 0) handleNextUser();
-      else handlePrevUser();
+      if (diff > 0) {
+        if (spark && spark.type === "multi_image") {
+          const images = spark.images || [spark.image];
+          if (galleryIdx < images.length - 1) {
+            setProgress(0);
+            setGalleryIdx((idx) => idx + 1);
+            return;
+          }
+        }
+        handleNextUser();
+      } else {
+        if (spark && spark.type === "multi_image") {
+          if (galleryIdx > 0) {
+            setProgress(0);
+            setGalleryIdx((idx) => idx - 1);
+            return;
+          }
+        }
+        handlePrevUser();
+      }
     } else if (timeDiff < 200) {
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
