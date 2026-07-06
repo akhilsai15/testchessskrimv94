@@ -104,6 +104,23 @@ function Caption({ text }: { text: string }) {
   );
 }
 
+// ─── Playable Audio URL Resolver Helper ─────────────────────────
+export const getPlayableAudioUrl = (vibe: VibePost) => {
+  if (vibe.audioUrl) return vibe.audioUrl;
+  const title = vibe.audio || '';
+  if (title.toLowerCase().includes('original audio')) return undefined;
+  
+  const found = CURATED_TRACKS.find(t => 
+    title.toLowerCase().includes(t.title.toLowerCase()) || 
+    t.title.toLowerCase().includes(title.toLowerCase())
+  );
+  if (found) return found.url;
+  
+  const hash = title.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const fallbackTrack = CURATED_TRACKS[hash % CURATED_TRACKS.length];
+  return fallbackTrack?.url;
+};
+
 // ─── Single Vibe Card ─────────────────────────────────────────
 function VibeCard({
   vibe,
@@ -327,25 +344,80 @@ function VibeCard({
     }
   }, [isPlaying, isActive]);
 
+  const getOrInitAudio = () => {
+    const audioUrl = getPlayableAudioUrl(vibe);
+    if (!audioUrl) return null;
+
+    if (!audioRef.current) {
+      audioRef.current = new Audio(audioUrl);
+      audioRef.current.loop = false;
+    } else if (audioRef.current.src !== audioUrl) {
+      audioRef.current.src = audioUrl;
+      audioRef.current.loop = false;
+    }
+    return audioRef.current;
+  };
+
+  const handleToggleMuteWithGesture = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleMute();
+    const nextMuted = !muted;
+    const audio = getOrInitAudio();
+    if (audio) {
+      audio.muted = nextMuted;
+      if (!nextMuted && isPlaying && isActive) {
+        audio.play().catch((err) => {
+          console.warn("Audio play failed on unmute gesture:", err);
+        });
+      }
+    }
+    if (videoRef.current) {
+      videoRef.current.muted = nextMuted || !!vibe.audioUrl;
+      if (!nextMuted && isPlaying && isActive) {
+        videoRef.current.play().catch(() => {});
+      }
+    }
+  };
+
+  const handleTogglePlayWithGesture = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsPlaying(prev => {
+      const next = !prev;
+      setShowPlayOverlay(next ? 'play' : 'pause');
+      if (overlayTimeout.current) clearTimeout(overlayTimeout.current);
+      overlayTimeout.current = setTimeout(() => {
+        setShowPlayOverlay(null);
+      }, 600);
+
+      if (next && isActive) {
+        const audio = getOrInitAudio();
+        if (audio) {
+          audio.muted = muted;
+          audio.play().catch((err) => {
+            console.warn("Audio play failed on play gesture:", err);
+          });
+        }
+        if (videoRef.current) {
+          videoRef.current.muted = muted || !!vibe.audioUrl;
+          videoRef.current.play().catch(() => {});
+        }
+      } else {
+        const audio = getOrInitAudio();
+        if (audio) {
+          audio.pause();
+        }
+        if (videoRef.current) {
+          videoRef.current.pause();
+        }
+      }
+
+      return next;
+    });
+  };
+
   // Unified Precise Time-Based Audio and Progress Playback Controller
   useEffect(() => {
-    const getAudioUrl = () => {
-      if (vibe.audioUrl) return vibe.audioUrl;
-      const title = vibe.audio || '';
-      if (title.toLowerCase().includes('original audio')) return null;
-      
-      const found = CURATED_TRACKS.find(t => 
-        title.toLowerCase().includes(t.title.toLowerCase()) || 
-        t.title.toLowerCase().includes(title.toLowerCase())
-      );
-      if (found) return found.url;
-      
-      const hash = title.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const fallbackTrack = CURATED_TRACKS[hash % CURATED_TRACKS.length];
-      return fallbackTrack?.url;
-    };
-
-    const audioUrl = getAudioUrl();
+    const audioUrl = getPlayableAudioUrl(vibe);
     if (!audioUrl) {
       if (vibe.videoSrc) {
         // Video manages its own playback progress via handleTimeUpdate
@@ -369,16 +441,9 @@ function VibeCard({
       return () => clearInterval(interval);
     }
 
-    // Instantiate or sync the audio source
-    if (!audioRef.current) {
-      audioRef.current = new Audio(audioUrl);
-      audioRef.current.loop = false; // We manage precise looping ourselves
-    } else if (audioRef.current.src !== audioUrl) {
-      audioRef.current.src = audioUrl;
-      audioRef.current.loop = false;
-    }
+    const audio = getOrInitAudio();
+    if (!audio) return;
 
-    const audio = audioRef.current;
     audio.muted = muted;
 
     const startSec = (vibe.start_ms || 0) / 1000;
@@ -391,7 +456,9 @@ function VibeCard({
         if (audio.currentTime < startSec || audio.currentTime >= endSec) {
           audio.currentTime = startSec;
         }
-        audio.play().catch(() => {});
+        audio.play().catch((err) => {
+          console.warn("Autoplay blocked video/audio track:", err);
+        });
       }
     } else {
       audio.pause();
@@ -528,8 +595,12 @@ function VibeCard({
     if (videoRef.current) {
       videoRef.current.currentTime = newTime;
     }
-    if (audioRef.current) {
-      audioRef.current.currentTime = (vibe.start_ms || 0) / 1000 + newTime;
+    const audio = getOrInitAudio();
+    if (audio) {
+      audio.currentTime = (vibe.start_ms || 0) / 1000 + newTime;
+      if (isPlaying && isActive) {
+        audio.play().catch(() => {});
+      }
     }
     setToastMessage(`Skipped to ${newTime.toFixed(1)}s! ⚡`);
     setTimeout(() => setToastMessage(''), 1500);
@@ -591,7 +662,31 @@ function VibeCard({
       }
       setBurst({ x: e.clientX, y: e.clientY });
     } else {
-      setIsPlaying(p => !p);
+      setIsPlaying(prev => {
+        const next = !prev;
+        if (next && isActive) {
+          const audio = getOrInitAudio();
+          if (audio) {
+            audio.muted = muted;
+            audio.play().catch((err) => {
+              console.warn("Audio play failed on media tap:", err);
+            });
+          }
+          if (videoRef.current) {
+            videoRef.current.muted = muted || !!vibe.audioUrl;
+            videoRef.current.play().catch(() => {});
+          }
+        } else {
+          const audio = getOrInitAudio();
+          if (audio) {
+            audio.pause();
+          }
+          if (videoRef.current) {
+            videoRef.current.pause();
+          }
+        }
+        return next;
+      });
     }
     lastTap.current = now;
   };
@@ -699,7 +794,7 @@ function VibeCard({
           
           {/* Left Controls: Play / Pause */}
           <button 
-            onClick={() => setIsPlaying(p => !p)} 
+            onClick={handleTogglePlayWithGesture} 
             className="p-2.5 rounded-xl bg-white/5 hover:bg-[#B026FF]/20 text-white transition-colors active:scale-90"
           >
             {isPlaying ? <Pause className="w-4 h-4 text-[#00F0FF]" /> : <Play className="w-4 h-4 text-[#B026FF] fill-[#B026FF]" />}
@@ -730,7 +825,7 @@ function VibeCard({
 
           {/* Audio Sound Toggle */}
           <button 
-            onClick={onToggleMute} 
+            onClick={handleToggleMuteWithGesture} 
             className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors active:scale-90"
           >
             {muted ? <VolumeX className="w-4 h-4 text-gray-500" /> : <Volume2 className="w-4 h-4 text-[#00F0FF]" />}
@@ -1012,14 +1107,17 @@ function VibeCard({
         onClose={() => setShowShareSheet(false)}
         post={{
           id: vibe.id,
-          image: vibe.thumbnail || '',
-          video: vibe.videoSrc || '',
+          image: vibe.thumbnail || undefined,
+          video: vibe.videoSrc || undefined,
           user: vibe.user,
           handle: vibe.handle,
           avatar: vibe.avatar,
           caption: vibe.caption || '',
           text: vibe.caption || '',
           audio: vibe.audio || '',
+          music_title: vibe.audio || undefined,
+          audioUrl: getPlayableAudioUrl(vibe),
+          type: vibe.type || undefined,
           mood: vibe.mood || ''
         }}
         currentUser={currentUser}
