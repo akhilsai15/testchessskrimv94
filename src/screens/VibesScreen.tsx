@@ -92,11 +92,16 @@ function Caption({ text }: { text: string }) {
   const shown = expanded || !isLong ? text : text.slice(0, 80) + '…';
   return (
     <p className="text-white/90 text-sm leading-relaxed drop-shadow">
-      {shown.split(' ').map((w, i) =>
-        w.startsWith('#')
-          ? <span key={i} className="text-[#00F0FF] font-semibold">{w} </span>
-          : w + ' '
-      )}
+      {shown.split(' ').map((w, i) => (
+        <React.Fragment key={`word_${i}`}>
+          {w.startsWith('#') ? (
+            <span className="text-[#00F0FF] font-semibold">{w}</span>
+          ) : (
+            w
+          )}
+          {' '}
+        </React.Fragment>
+      ))}
       {isLong && !expanded && (
         <button onClick={() => setExpanded(true)} className="text-white/50 font-bold ml-1">more</button>
       )}
