@@ -1116,7 +1116,7 @@ function VibeCard({
           text: vibe.caption || '',
           audio: vibe.audio || '',
           music_title: vibe.audio || undefined,
-          audioUrl: getPlayableAudioUrl(vibe),
+          audioUrl: vibe.audioUrl || getPlayableAudioUrl(vibe) || undefined,
           type: vibe.type || undefined,
           mood: vibe.mood || ''
         }}
@@ -1233,6 +1233,7 @@ function VibeCreateSheet({ isOpen, onClose, currentUser, onPost }: {
     if (!canPost) return;
     const id = `vibe_user_${Date.now()}`;
     const parsedHashtags = caption.match(/#[a-zA-Z0-9]+/g) || [];
+    const finalUseOriginal = postType === 'video' ? useOriginalAudio : false;
     const newVibe: VibePost = {
       id,
       type: postType,
@@ -1241,10 +1242,10 @@ function VibeCreateSheet({ isOpen, onClose, currentUser, onPost }: {
       avatar: currentUser?.avatar || '',
       thumbnail: postType === 'image' ? mediaUrl! : '',
       caption,
-      audio: useOriginalAudio ? 'Original Audio 🎤' : (music?.title || 'Original Audio 🎤'),
-      audioUrl: useOriginalAudio ? undefined : (music?.url || undefined),
+      audio: finalUseOriginal ? 'Original Audio 🎤' : (music?.title || 'Original Audio 🎤'),
+      audioUrl: finalUseOriginal ? undefined : (music?.url || undefined),
       duration: postType === 'image' ? imageDuration : (postType === 'text' ? 15 : undefined),
-      start_ms: useOriginalAudio ? undefined : (music ? music.start_ms : undefined),
+      start_ms: finalUseOriginal ? undefined : (music ? music.start_ms : undefined),
       mood,
       createdAt: Date.now(),
       likes: 0,
@@ -1655,6 +1656,7 @@ function VibeCreateSheet({ isOpen, onClose, currentUser, onPost }: {
             onClose={() => setShowMusicPicker(false)}
             onSelect={(m) => {
               setMusic(m);
+              setUseOriginalAudio(false);
               if (m?.duration_s) {
                 setImageDuration(m.duration_s);
               }
