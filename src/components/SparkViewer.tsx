@@ -94,8 +94,8 @@ export function SparkThumbnail({ spark, className = "w-full h-full object-cover"
     let active = true;
     if (!spark) return;
 
-    if (spark.type === "image" && spark.image) {
-      setThumbUrl(spark.image);
+    if ((spark.type === "image" || spark.type === "multi_image") && (spark.image || spark.images)) {
+      setThumbUrl(spark.image || (spark.images && spark.images[0]) || 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=400&h=700&fit=crop');
       setLoading(false);
       return;
     }
@@ -341,11 +341,14 @@ export function SparkViewer({
   const group = groupedSparks[userIndex];
   const spark = group?.sparks[sparkIndex];
 
-  // Reset gallery and audio seek position when spark shifts
+  // Reset gallery and audio/video seek position when spark shifts
   useEffect(() => {
     setGalleryIdx(0);
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
+    }
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
     }
   }, [sparkIndex, userIndex, spark?.id]);
 
@@ -361,7 +364,7 @@ export function SparkViewer({
         });
       }
     }
-  }, [isPaused, showInsights, activeSheet, radialMenuOpen, sparkIndex, userIndex, isMuted, spark?.audioUrl]);
+  }, [isPaused, showInsights, activeSheet, radialMenuOpen, sparkIndex, userIndex, isMuted, spark?.audioUrl, spark?.id]);
 
   useEffect(() => {
     if (activeSheet === "highlight") {
@@ -429,13 +432,14 @@ export function SparkViewer({
 
   useEffect(() => {
     if (videoRef.current) {
+      videoRef.current.muted = isMuted || !!spark?.audioUrl;
       if (isPaused || showInsights || activeSheet || radialMenuOpen) {
         videoRef.current.pause();
       } else {
         videoRef.current.play().catch(() => {});
       }
     }
-  }, [isPaused, showInsights, activeSheet, radialMenuOpen, sparkIndex, userIndex]);
+  }, [isPaused, showInsights, activeSheet, radialMenuOpen, sparkIndex, userIndex, spark?.id, isMuted, spark?.audioUrl]);
 
   useEffect(() => {
     setProgress(0);
@@ -1214,8 +1218,8 @@ export function SparkViewer({
                             ref={videoRef}
                             src={spark.video || "https://www.w3schools.com/html/mov_bbb.mp4"}
                             className="w-full h-full object-cover"
-                            autoPlay
-                            muted={isMuted}
+                            autoPlay={!isPaused && !showInsights && !activeSheet && !radialMenuOpen}
+                            muted={isMuted || !!spark.audioUrl}
                             controls={false}
                             loop
                             playsInline
@@ -1308,6 +1312,8 @@ export function SparkViewer({
                           src={spark.audioUrl}
                           loop
                           preload="auto"
+                          muted={isMuted}
+                          autoPlay={!isPaused && !showInsights && !activeSheet && !radialMenuOpen}
                         />
                       )}
                     </motion.div>
