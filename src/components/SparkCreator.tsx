@@ -253,6 +253,7 @@ export function SparkCreator({ isOpen, onClose, onPost, respondingToChallenge, r
       music_url: selectedMusic?.url || undefined,
       music_start_ms: selectedMusic?.start_ms ?? undefined,
       music_title: selectedMusic?.title || undefined,
+      audioUrl: selectedMusic?.url || undefined,
       // New interactive stickers
       qnaSticker: qnaEnabled ? { prompt: qnaPrompt.trim() || 'Ask me anything!' } : undefined,
       quizSticker: quizEnabled ? {

@@ -384,7 +384,7 @@ export function SparkViewer({
         });
       }
     }
-  }, [isActive, sparkIndex, userIndex, isMuted, spark?.audioUrl, spark?.id]);
+  }, [isActive, sparkIndex, userIndex, isMuted, spark?.audioUrl, spark?.music_url, spark?.id]);
 
   useEffect(() => {
     if (activeSheet === "highlight") {
@@ -452,7 +452,7 @@ export function SparkViewer({
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.muted = isMuted || !!spark?.audioUrl;
+      videoRef.current.muted = isMuted || !!(spark?.audioUrl || spark?.music_url);
       videoRef.current.loop = isActive;
       if (!isActive) {
         videoRef.current.pause();
@@ -460,7 +460,7 @@ export function SparkViewer({
         videoRef.current.play().catch(() => {});
       }
     }
-  }, [isActive, sparkIndex, userIndex, spark?.id, isMuted, spark?.audioUrl]);
+  }, [isActive, sparkIndex, userIndex, spark?.id, isMuted, spark?.audioUrl, spark?.music_url]);
 
   useEffect(() => {
     setProgress(0);
@@ -1184,7 +1184,7 @@ export function SparkViewer({
 
         <AnimatePresence mode="wait">
           <motion.div
-            key={group.userId || userIndex}
+            key={`${group.userId || "group"}_${userIndex}`}
             initial={{ x: direction === 1 ? "100%" : "-100%", opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: direction === 1 ? "-100%" : "100%", opacity: 0 }}
@@ -1268,7 +1268,7 @@ export function SparkViewer({
                 <div className="absolute inset-0 z-0 flex items-center justify-center bg-black">
                   <AnimatePresence mode="wait">
                     <motion.div
-                      key={spark.id || sparkIndex}
+                      key={`${spark.id || "spark"}_${sparkIndex}`}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
@@ -1299,7 +1299,7 @@ export function SparkViewer({
                             src={spark.video || "https://www.w3schools.com/html/mov_bbb.mp4"}
                             className="w-full h-full object-cover"
                             autoPlay={isActive}
-                            muted={isMuted || !!spark.audioUrl}
+                            muted={isMuted || !!(spark.audioUrl || spark.music_url)}
                             controls={false}
                             loop={isActive}
                             playsInline
@@ -1405,10 +1405,10 @@ export function SparkViewer({
                         </div>
                       )}
                       
-                      {spark?.audioUrl && (
+                      {(spark?.audioUrl || spark?.music_url) && (
                         <audio
                           ref={audioRef}
-                          src={spark.audioUrl}
+                          src={spark.audioUrl || spark.music_url}
                           loop={isActive}
                           preload="auto"
                           muted={isMuted}
@@ -1424,7 +1424,7 @@ export function SparkViewer({
                 <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-10 pointer-events-none" />
 
                 {/* Universal Mute Button for Audio/Video Sparks */}
-                {spark && (spark.type === "video" || spark.audioUrl) && (
+                {spark && (spark.type === "video" || spark.audioUrl || spark.music_url) && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1523,7 +1523,7 @@ export function SparkViewer({
                         {isHighlightMode ? (
                           <>
                             <motion.span
-                              key={group.userId || userIndex}
+                              key={`span-${group.userId || "group"}_${userIndex}`}
                               initial={{ opacity: 0, y: 5 }}
                               animate={{ opacity: 1, y: 0 }}
                               className="font-semibold text-[15px] leading-tight text-white mb-0.5"
@@ -1538,7 +1538,7 @@ export function SparkViewer({
                           <>
                             <div className="flex items-center gap-1.5 mb-0.5">
                               <motion.span
-                                key={group.userId || userIndex}
+                                key={`span-collab-${group.userId || "group"}_${userIndex}`}
                                 initial={{ opacity: 0, y: 5 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className="font-semibold text-[15px] leading-tight text-white whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]"
@@ -2716,7 +2716,7 @@ export function SparkViewer({
                           No highlights created yet. Create one above!
                         </div>
                       ) : (
-                        highlights.map((hl) => {
+                        highlights.map((hl, i) => {
                           const cover = hl.cover;
                           const isImg = cover?.startsWith('http') || cover?.startsWith('data:');
                           const bgs: Record<string, string> = {
@@ -2733,7 +2733,7 @@ export function SparkViewer({
 
                           return (
                             <button
-                              key={hl.id}
+                              key={`${hl.id || ""}_${i}`}
                               onClick={() => handleAddToHighlight(hl.id)}
                               className="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 active:scale-[0.98] transition-all text-left"
                             >

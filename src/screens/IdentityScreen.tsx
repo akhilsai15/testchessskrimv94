@@ -862,7 +862,7 @@ export default function IdentityScreen() {
               <span className="text-[11px] font-semibold text-gray-400 group-hover:text-white mt-1">New</span>
             </button>
 
-            {highlights.map((h) => {
+            {highlights.map((h, i) => {
               const cover = h.cover;
               const isImage = cover?.startsWith('http') || cover?.startsWith('data:');
               const bgs: Record<string, string> = {
@@ -879,7 +879,7 @@ export default function IdentityScreen() {
 
               return (
                 <motion.div 
-                  key={h.id} 
+                  key={`${h.id || ""}_${i}`} 
                   animate={{ scale: pressingId === h.id ? 0.9 : 1 }}
                   onMouseDown={() => {
                     setPressingId(h.id);
@@ -1113,7 +1113,7 @@ export default function IdentityScreen() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: (i % 9) * 0.05 }}
-                  key={post.id} 
+                  key={`${post.id || ""}_${i}`} 
                   className="aspect-square bg-white/5 relative group cursor-pointer overflow-hidden"
                   onClick={() => setSelectedMedia({ 
                     index: i, 
@@ -1209,7 +1209,7 @@ export default function IdentityScreen() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: (i % 6) * 0.05 }}
-                    key={vibe.id} 
+                    key={`${vibe.id || ""}_${i}`} 
                     className="aspect-[9/16] bg-white/5 relative group cursor-pointer overflow-hidden"
                     onClick={() => setSelectedMedia({ 
                       index: i, 

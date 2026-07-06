@@ -3249,12 +3249,13 @@ export default function PulseScreen() {
       <div className="flex flex-col pt-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <PostSkeleton key={i} />)
-        ) : displayedPosts.map(post => {
-          if (post.type === 'suggested_user') return <SuggestedUserCard key={post.id} post={post} />;
-          if (post.type === 'pulse_battle')   return <PulseBattleCard   key={post.id} post={post} onVote={() => {}} />;
-          if (post.type === 'collab_post')    return <CollabPost         key={post.id} post={post} onLike={handleLike} navigate={navigate} />;
+        ) : displayedPosts.map((post, idx) => {
+          const uniqueKey = `${post.id || ""}_${idx}`;
+          if (post.type === 'suggested_user') return <SuggestedUserCard key={uniqueKey} post={post} />;
+          if (post.type === 'pulse_battle')   return <PulseBattleCard   key={uniqueKey} post={post} onVote={() => {}} />;
+          if (post.type === 'collab_post')    return <CollabPost         key={uniqueKey} post={post} onLike={handleLike} navigate={navigate} />;
           if (post.type === 'repost')          return (
-            <RepostCard key={post.id} post={post} onLike={handleLike}
+            <RepostCard key={uniqueKey} post={post} onLike={handleLike}
               onComment={setActiveCommentsPostId} onShare={(id: string, view?: string) => { if (view === 'send') setActiveSendPostId(id); else setActiveResharePostId(id); }}
               onSave={handleSave} onReact={handleReact} navigate={navigate}
               onPickerDown={handlePickerDown} onPickerUp={handlePickerUp}
@@ -3262,33 +3263,33 @@ export default function PulseScreen() {
               onStoryBehind={setStoryBehindPostId} onMediaClick={handleMediaClick} currentUser={currentUser} />
           );
           if (post.type === 'text')           return (
-            <TextPost key={post.id} post={post} onLike={handleLike}
+            <TextPost key={uniqueKey} post={post} onLike={handleLike}
               onComment={setActiveCommentsPostId} onShare={(id: string, view?: string) => { if (view === 'send') setActiveSendPostId(id); else setActiveResharePostId(id); }}
               onSave={handleSave} onReact={handleReact} navigate={navigate}
               onPickerDown={handlePickerDown} onPickerUp={handlePickerUp}
               pickerPostId={pickerPostId} triggerReaction={triggerReaction} onMediaClick={handleMediaClick} />
           );
           if (post.type === 'poll')           return (
-            <PollPost key={post.id} post={post} onLike={handleLike}
+            <PollPost key={uniqueKey} post={post} onLike={handleLike}
               onComment={setActiveCommentsPostId} onShare={(id: string, view?: string) => { if (view === 'send') setActiveSendPostId(id); else setActiveResharePostId(id); }}
               onSave={handleSave} navigate={navigate} currentUser={currentUser} />
           );
           if (post.type === 'multi_image')    return (
-            <MultiImagePost key={post.id} post={post} onLike={handleLike}
+            <MultiImagePost key={uniqueKey} post={post} onLike={handleLike}
               onComment={setActiveCommentsPostId} onShare={(id: string, view?: string) => { if (view === 'send') setActiveSendPostId(id); else setActiveResharePostId(id); }}
               onSave={handleSave} onReact={handleReact} navigate={navigate}
               onPickerDown={handlePickerDown} onPickerUp={handlePickerUp}
               pickerPostId={pickerPostId} triggerReaction={triggerReaction} onMediaClick={handleMediaClick} />
           );
           if (post.type === 'video_thumb')    return (
-            <VideoThumbPost key={post.id} post={post} onLike={handleLike}
+            <VideoThumbPost key={uniqueKey} post={post} onLike={handleLike}
               onComment={setActiveCommentsPostId} onShare={(id: string, view?: string) => { if (view === 'send') setActiveSendPostId(id); else setActiveResharePostId(id); }}
               onSave={handleSave} onReact={handleReact} navigate={navigate}
               onPickerDown={handlePickerDown} onPickerUp={handlePickerUp}
               pickerPostId={pickerPostId} triggerReaction={triggerReaction} onMediaClick={handleMediaClick} />
           );
           return (
-            <ImagePost key={post.id} post={post} onLike={handleLike}
+            <ImagePost key={uniqueKey} post={post} onLike={handleLike}
               onComment={setActiveCommentsPostId} onShare={(id: string, view?: string) => { if (view === 'send') setActiveSendPostId(id); else setActiveResharePostId(id); }}
               onSave={handleSave} onReact={handleReact} navigate={navigate}
               onPickerDown={handlePickerDown} onPickerUp={handlePickerUp}

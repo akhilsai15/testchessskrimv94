@@ -2217,7 +2217,7 @@ export default function VibesScreen() {
       >
         {vibes.map((vibe, i) => (
           <div
-            key={vibe.id}
+            key={`${vibe.id || ""}_${i}`}
             className="w-full h-full snap-start snap-always relative overflow-hidden shrink-0"
           >
             <VibeCard
