@@ -381,6 +381,9 @@ function VibeCard({
 
   const handleTogglePlayWithGesture = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (muted) {
+      onToggleMute();
+    }
     setIsPlaying(prev => {
       const next = !prev;
       setShowPlayOverlay(next ? 'play' : 'pause');
@@ -682,6 +685,9 @@ function VibeCard({
 
   const handleTapMedia = (e: React.MouseEvent) => {
     const now = Date.now();
+    if (muted) {
+      onToggleMute();
+    }
     if (now - lastTap.current < 300) {
       if (!liked) {
         setLiked(true);
@@ -1716,7 +1722,7 @@ export default function VibesScreen() {
   const currentUser = useCurrentUser();
   const [vibes, setVibes]           = useState<VibePost[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [muted, setMuted]           = useState(true);
+  const [muted, setMuted]           = useState(false);
   const [loading, setLoading]       = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [activeFilter, setActiveFilter] = useState('foryou');
