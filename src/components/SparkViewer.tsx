@@ -249,6 +249,24 @@ export function SparkViewer({
   );
   const [direction, setDirection] = useState(1);
 
+  // Keep indices in bounds if groupedSparks updates (e.g., after deletion)
+  useEffect(() => {
+    if (userIndex >= groupedSparks.length) {
+      const nextU = Math.max(0, groupedSparks.length - 1);
+      setUserIndex(nextU);
+      if (groupedSparks[nextU]) {
+        setSparkIndex(Math.min(sparkIndex, groupedSparks[nextU].sparks.length - 1));
+      } else {
+        setSparkIndex(0);
+      }
+    } else {
+      const group = groupedSparks[userIndex];
+      if (group && sparkIndex >= group.sparks.length) {
+        setSparkIndex(Math.max(0, group.sparks.length - 1));
+      }
+    }
+  }, [groupedSparks, userIndex, sparkIndex]);
+
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -797,6 +815,35 @@ export function SparkViewer({
     setNewHighlightName("");
     setNewHighlightEmoji("✨");
     setActiveSheet(null);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!spark) return;
+    if (onDelete) {
+      onDelete(spark.id);
+    }
+    setActiveSheet(null);
+    showToast("🗑️ Spark deleted successfully");
+
+    // Try to advance or close
+    const currentGroup = groupedSparks[userIndex];
+    if (currentGroup && currentGroup.sparks.length > 1) {
+      if (sparkIndex >= currentGroup.sparks.length - 1) {
+        if (sparkIndex > 0) {
+          setSparkIndex(sparkIndex - 1);
+        } else {
+          handleNextUser();
+        }
+      } else {
+        // Advanced implicitly since next element shifts into sparkIndex
+      }
+    } else {
+      if (groupedSparks.length > 1) {
+        handleNextUser();
+      } else {
+        onClose();
+      }
+    }
   };
 
   const handleReplySend = () => {
@@ -1918,29 +1965,38 @@ export function SparkViewer({
                                 <Share2 className="w-5 h-5 text-white" />
                               </button>
                               {isOwnSpark && (
-                                <button
-                                  onClick={handleSave}
-                                  className="w-12 h-12 bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 shrink-0 relative overflow-hidden group"
-                                >
-                                  {isSaved && (
-                                    <motion.div
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      className="absolute inset-0 bg-[#B026FF] z-0"
-                                    />
-                                  )}
-                                  <motion.div
-                                    animate={
-                                      isBounceSave ? { scale: [1, 1.3, 1] } : {}
-                                    }
-                                    transition={{ duration: 0.3 }}
-                                    className="z-10"
+                                <>
+                                  <button
+                                    onClick={handleSave}
+                                    className="w-12 h-12 bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 shrink-0 relative overflow-hidden group"
                                   >
-                                    <Bookmark
-                                      className={`w-5 h-5 ${isSaved ? "text-white fill-white" : "text-white"}`}
-                                    />
-                                  </motion.div>
-                                </button>
+                                    {isSaved && (
+                                      <motion.div
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        className="absolute inset-0 bg-[#B026FF] z-0"
+                                      />
+                                    )}
+                                    <motion.div
+                                      animate={
+                                        isBounceSave ? { scale: [1, 1.3, 1] } : {}
+                                      }
+                                      transition={{ duration: 0.3 }}
+                                      className="z-10"
+                                    >
+                                      <Bookmark
+                                        className={`w-5 h-5 ${isSaved ? "text-white fill-white" : "text-white"}`}
+                                      />
+                                    </motion.div>
+                                  </button>
+                                  <button
+                                    onClick={() => setActiveSheet("delete-confirm")}
+                                    className="w-12 h-12 bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 transition-colors backdrop-blur-md rounded-full flex items-center justify-center border border-red-500/30 shrink-0 relative overflow-hidden group"
+                                    title="Delete Spark"
+                                  >
+                                    <Trash2 className="w-5 h-5" />
+                                  </button>
+                                </>
                               )}
                             </div>
                           </>
@@ -2530,6 +2586,124 @@ export function SparkViewer({
                         className="py-3.5 px-6 bg-gradient-to-r from-[#B026FF] to-[#00F0FF] rounded-full text-white font-bold flex-[2] shadow-[0_0_15px_rgba(176,38,255,0.4)] hover:opacity-90"
                       >
                         Accept & Create
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {activeSheet === "options" && (
+                  <div className="px-5 pb-8 flex flex-col gap-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="font-bold text-white text-lg">Spark Options</h3>
+                      <button
+                        onClick={() => setActiveSheet(null)}
+                        className="p-1.5 bg-white/10 rounded-full"
+                      >
+                        <X className="w-5 h-5 text-white" />
+                      </button>
+                    </div>
+
+                    {isOwnSpark ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            setActiveSheet("delete-confirm");
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 active:scale-[0.98] transition-all font-semibold"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                          <span>Delete Spark</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setActiveSheet(null);
+                            navigator.clipboard.writeText(
+                              window.location.origin + "/spark/" + spark.id,
+                            );
+                            showToast("🔗 Link copied!");
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 active:scale-[0.98] transition-all font-semibold"
+                        >
+                          <Copy className="w-5 h-5" />
+                          <span>Copy Link</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setActiveSheet(null);
+                            handleOpenHighlightPicker();
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 active:scale-[0.98] transition-all font-semibold"
+                        >
+                          <span className="text-lg leading-none">💜</span>
+                          <span>Add to Highlights</span>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => {
+                            setActiveSheet(null);
+                            navigator.clipboard.writeText(
+                              window.location.origin + "/spark/" + spark.id,
+                            );
+                            showToast("🔗 Link copied!");
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 active:scale-[0.98] transition-all font-semibold"
+                        >
+                          <Copy className="w-5 h-5" />
+                          <span>Copy Link</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setActiveSheet(null);
+                            showToast("⚠️ Spark reported. Thank you for making the community safe!");
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500/20 active:scale-[0.98] transition-all font-semibold"
+                        >
+                          <AlertTriangle className="w-5 h-5" />
+                          <span>Report Spark</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setActiveSheet(null);
+                            showToast(`🚫 @${group?.user?.username || 'user'} has been blocked.`);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 active:scale-[0.98] transition-all font-semibold"
+                        >
+                          <Ban className="w-5 h-5" />
+                          <span>Block User</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {activeSheet === "delete-confirm" && (
+                  <div className="px-5 pb-8 flex flex-col items-center text-center">
+                    <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-4 border border-red-500/20">
+                      <Trash2 className="w-8 h-8" />
+                    </div>
+                    <h3 className="font-bold text-white text-xl mb-2">Delete Spark?</h3>
+                    <p className="text-gray-400 text-sm mb-6 max-w-xs">
+                      This action cannot be undone. This Spark will be permanently removed from your feed and profile.
+                    </p>
+
+                    <div className="flex gap-3 w-full">
+                      <button
+                        onClick={() => setActiveSheet(isOwnSpark ? "options" : null)}
+                        className="flex-1 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold hover:bg-white/10 active:scale-[0.98] transition-all"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleDeleteConfirm}
+                        className="flex-1 py-3.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg shadow-red-500/20 active:scale-[0.98] transition-all"
+                      >
+                        Delete
                       </button>
                     </div>
                   </div>
