@@ -776,7 +776,7 @@ export default function IdentityScreen() {
               <div className="flex flex-col gap-1.5 mb-4">
                 {getProfileLinks(user).map((link, i) => (
                   <a
-                    key={link.id || i}
+                    key={`bio-link-${link.id || i}_${i}`}
                     href={link.url.startsWith('http') ? link.url : `https://${link.url}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -1296,8 +1296,7 @@ export default function IdentityScreen() {
                  initial={{ opacity: 0 }}
                  animate={{ opacity: 1 }}
                  transition={{ delay: (i % 6) * 0.05 }}
-                 key={`saved-${item.id}`} 
-                 className="aspect-square bg-white/5 relative group cursor-pointer overflow-hidden"
+                 key={`saved-${item.id || ""}_${i}`} className="aspect-square bg-white/5 relative group cursor-pointer overflow-hidden"
                  onClick={() => setSelectedMedia({ 
                    index: i, 
                    type: (item.id?.startsWith('vibe') || item.id?.startsWith('reel') || isVideo) ? 'vibe' : 'saved', 
@@ -1343,8 +1342,7 @@ export default function IdentityScreen() {
                  initial={{ opacity: 0 }}
                  animate={{ opacity: 1 }}
                  transition={{ delay: (i % 6) * 0.05 }}
-                 key={`offline-${item.id}`} 
-                 className="aspect-[3/4] bg-white/5 relative group cursor-pointer overflow-hidden"
+                 key={`offline-${item.id || ""}_${i}`} className="aspect-[3/4] bg-white/5 relative group cursor-pointer overflow-hidden"
                  onClick={() => setSelectedMedia({ 
                    index: i, 
                    type: 'vibe', 
@@ -1399,7 +1397,7 @@ export default function IdentityScreen() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: (i % 6) * 0.05 }}
-                key={`repost-${item.id || i}`}
+                key={`repost-${item.id || ""}_${i}`}
                 className="aspect-square bg-white/5 relative group cursor-pointer overflow-hidden"
                 onClick={() => setSelectedMedia({
                   index: i,
@@ -1431,7 +1429,7 @@ export default function IdentityScreen() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: (i % 6) * 0.05 }}
-                key={`${activeTab}-${post.id}`} 
+                key={`${activeTab}-${post.id || ""}_${i}`} 
                 className="aspect-square bg-white/5 relative group cursor-pointer overflow-hidden"
                 onClick={() => setSelectedMedia({ 
                   index: i, 
@@ -1595,7 +1593,7 @@ export default function IdentityScreen() {
                   )}
                   <div className="flex flex-col gap-2">
                     {editLinks.map((link, i) => (
-                      <div key={link.id || i} className="flex items-center gap-2">
+                      <div key={`edit-link-${link.id || i}_${i}`} className="flex items-center gap-2">
                         <input
                           type="text"
                           value={link.label}
