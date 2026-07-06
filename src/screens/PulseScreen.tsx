@@ -2701,7 +2701,7 @@ export default function PulseScreen() {
     });
     // Compute group-level hasViewed: true only if ALL sparks in the group have been viewed
     Object.values(groups).forEach((group: any) => {
-      group.sparks.sort((a: any, b: any) => (a.createdAt || 0) - (b.createdAt || 0));
+      group.sparks.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
       group.hasViewed = group.sparks.length > 0 && group.sparks.every((s: any) => s.hasViewed || viewedSparks.has(s.id));
     });
     return Object.values(groups).sort((a, b) => {

@@ -644,7 +644,7 @@ export default function IdentityScreen() {
     });
     return Object.entries(groups)
       .sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime())
-      .map(([day, sparks]) => ({ day, sparks: sparks.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)) }));
+      .map(([day, sparks]) => ({ day, sparks: sparks.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) }));
   }, [archivedSparks]);
 
   const handleOpenArchiveDay = (day: string, daySparks: any[]) => {
@@ -840,10 +840,29 @@ export default function IdentityScreen() {
 
 
       {/* SECTION 3.5 - Spark Highlights */}
-      {highlights.length > 0 && (
-        <div className="px-6 mb-8">
-           <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 items-start">
-              {highlights.map((h) => {
+      <div className="px-6 mb-8">
+         <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 items-start">
+            {/* Create New Highlight / Archive access button */}
+            <button
+              onClick={() => {
+                setShowArchiveSheet(true);
+                if (archivedSparks.length === 0) {
+                  setToastMessage("Tap on any active Spark to add it to your Highlights, or post some Sparks first!");
+                  setTimeout(() => setToastMessage(""), 5000);
+                } else {
+                  setToastMessage("Select a day from your Archive to create a Highlight!");
+                  setTimeout(() => setToastMessage(""), 4000);
+                }
+              }}
+              className="flex flex-col items-center gap-2 shrink-0 group text-left cursor-pointer"
+            >
+              <div className="w-16 h-16 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center bg-white/5 hover:bg-white/10 hover:border-white/40 active:scale-95 transition-all">
+                <Plus className="w-6 h-6 text-gray-400 group-hover:text-white" />
+              </div>
+              <span className="text-[11px] font-semibold text-gray-400 group-hover:text-white mt-1">New</span>
+            </button>
+
+            {highlights.map((h) => {
               const cover = h.cover;
               const isImage = cover?.startsWith('http') || cover?.startsWith('data:');
               const bgs: Record<string, string> = {
@@ -906,7 +925,6 @@ export default function IdentityScreen() {
             })}
          </div>
       </div>
-      )}
 
       {/* SECTION 4 - Quick Stats Cards */}
       <div className="flex overflow-x-auto no-scrollbar gap-3 px-6 mb-8 snap-x">
@@ -1650,10 +1668,32 @@ export default function IdentityScreen() {
           isHighlightMode={isHighlightViewer}
           highlightName={activeHighlightName}
           onDelete={(sparkId) => {
+             if (isHighlightViewer) {
+               const hlId = activeHighlightGroup[0]?.id;
+               if (hlId) {
+                 const storedH = localStorage.getItem('skrimchat_highlights');
+                 if (storedH) {
+                   const parsed = JSON.parse(storedH);
+                   const updated = parsed.map((h: any) => {
+                     if (h.id === hlId) {
+                       return { ...h, sparks: (h.sparks || []).filter((s: any) => s.id !== sparkId) };
+                     }
+                     return h;
+                   });
+                   localStorage.setItem('skrimchat_highlights', JSON.stringify(updated));
+                   setHighlights(updated);
+                   window.dispatchEvent(new Event('highlightSaved'));
+                 }
+               }
+             }
              // Let's remove it from activeHighlightGroup if there
              setActiveHighlightGroup(prev => {
                 if (prev.length === 0) return prev;
                 const newSparks = prev[0].sparks.filter((s:any) => s.id !== sparkId);
+                if (newSparks.length === 0) {
+                  setTimeout(() => setActiveHighlightGroup([]), 100);
+                  return [];
+                }
                 return [{ ...prev[0], sparks: newSparks }];
              });
           }}

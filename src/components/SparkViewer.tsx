@@ -2682,19 +2682,217 @@ export function SparkViewer({
                   </div>
                 )}
 
+                {activeSheet === "highlight" && (
+                  <div className="px-5 pb-8 flex flex-col gap-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <h3 className="font-bold text-white text-lg flex items-center gap-2">
+                        <span>💜</span> Add to Highlights
+                      </h3>
+                      <button
+                        onClick={() => setActiveSheet("options")}
+                        className="p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+                      >
+                        <X className="w-5 h-5 text-white" />
+                      </button>
+                    </div>
+
+                    {/* Button to trigger Create New Highlight */}
+                    <button
+                      onClick={() => setActiveSheet("create-highlight")}
+                      className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-gradient-to-r from-[#B026FF]/20 to-[#00F0FF]/20 border border-[#B026FF]/30 text-white hover:opacity-90 active:scale-[0.98] transition-all font-semibold"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xl">
+                        ➕
+                      </div>
+                      <div className="text-left flex-1">
+                        <p className="font-bold text-sm">Create New Highlight</p>
+                        <p className="text-xs text-gray-400">Add this spark to a brand new collection</p>
+                      </div>
+                    </button>
+
+                    <div className="max-h-[300px] overflow-y-auto flex flex-col gap-2 mt-1 pr-1">
+                      {highlights.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500 text-sm">
+                          No highlights created yet. Create one above!
+                        </div>
+                      ) : (
+                        highlights.map((hl) => {
+                          const cover = hl.cover;
+                          const isImg = cover?.startsWith('http') || cover?.startsWith('data:');
+                          const bgs: Record<string, string> = {
+                            'purple': 'linear-gradient(to bottom right, #B026FF, #00F0FF)',
+                            'rose': 'linear-gradient(to bottom, #FF416C, #FF4B2B)',
+                            'dark': '#121212',
+                            'orange-red': 'linear-gradient(to bottom right, #FF8A00, #FF0000)',
+                            'cyan-blue': 'linear-gradient(to bottom right, #00FFFF, #0000FF)',
+                            'green-teal': 'linear-gradient(to bottom right, #00FF00, #008080)',
+                            'pink-purple': 'linear-gradient(to bottom right, #FF00FF, #800080)',
+                            'gold-orange': 'linear-gradient(to bottom right, #FFD700, #FFA500)',
+                          };
+                          const bgStyle = isImg ? {} : { background: cover?.includes('gradient') || cover?.startsWith('#') ? cover : (bgs[cover] || bgs['purple']) };
+
+                          return (
+                            <button
+                              key={hl.id}
+                              onClick={() => handleAddToHighlight(hl.id)}
+                              className="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 active:scale-[0.98] transition-all text-left"
+                            >
+                              <HighlightAvatar emoji={hl.emoji || "✨"} theme={bgStyle.background as string} size={40} />
+                              <div className="flex-1">
+                                <p className="font-semibold text-white text-sm">{hl.title}</p>
+                                <p className="text-xs text-gray-400">{hl.sparks?.length || 0} sparks</p>
+                              </div>
+                              <span className="text-xs font-bold text-[#B026FF]">Add +</span>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {activeSheet === "create-highlight" && (
+                  <div className="px-5 pb-8 flex flex-col gap-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <h3 className="font-bold text-white text-lg">
+                        New Highlight
+                      </h3>
+                      <button
+                        onClick={() => setActiveSheet("highlight")}
+                        className="p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+                      >
+                        <ArrowLeft className="w-5 h-5 text-white" />
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <button
+                            type="button"
+                            className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center text-3xl hover:bg-white/20 border border-white/10 relative"
+                            onClick={() => {
+                              const emojis = ["✨", "💜", "🔥", "🌸", "🍕", "🎮", "🌟", "🐾", "🍿", "🎵", "✈️", "🌊"];
+                              const currIdx = emojis.indexOf(newHighlightEmoji);
+                              const nextIdx = (currIdx + 1) % emojis.length;
+                              setNewHighlightEmoji(emojis[nextIdx]);
+                            }}
+                          >
+                            {newHighlightEmoji}
+                            <div className="absolute -bottom-1 -right-1 bg-[#B026FF] rounded-full p-1 text-[8px] font-bold text-white border border-[#121212]">
+                              🔄
+                            </div>
+                          </button>
+                        </div>
+
+                        <div className="flex-1">
+                          <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">
+                            Highlight Title
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Summer vibes"
+                            value={newHighlightName}
+                            onChange={(e) => setNewHighlightName(e.target.value)}
+                            maxLength={20}
+                            className="w-full bg-white/5 border border-white/10 focus:border-[#B026FF] rounded-xl px-4 py-3 text-white font-medium text-sm outline-none transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Quick Emoji Picker Row */}
+                      <div>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-2">
+                          Choose Emoji
+                        </p>
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                          {["✨", "💜", "🔥", "🌸", "🍕", "🎮", "🌟", "🐾", "🍿", "🎵", "✈️", "🌊"].map((emo) => (
+                            <button
+                              key={emo}
+                              type="button"
+                              onClick={() => setNewHighlightEmoji(emo)}
+                              className={`w-9 h-9 rounded-full flex items-center justify-center text-xl transition-all ${newHighlightEmoji === emo ? "bg-[#B026FF]/20 border-2 border-[#B026FF] scale-110" : "bg-white/5 border border-white/10 hover:bg-white/10"}`}
+                            >
+                              {emo}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 mt-4">
+                        <button
+                          onClick={() => setActiveSheet("highlight")}
+                          className="flex-1 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold hover:bg-white/10 active:scale-[0.98] transition-all text-sm"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          disabled={!newHighlightName.trim()}
+                          onClick={handleCreateHighlight}
+                          className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-[#B026FF] to-[#00F0FF] text-white font-bold shadow-lg shadow-[#B026FF]/20 active:scale-[0.98] transition-all disabled:opacity-50 text-sm"
+                        >
+                          Create Highlight
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeSheet === "highlight-options" && (
+                  <div className="px-5 pb-8 flex flex-col gap-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="font-bold text-white text-lg">Highlight Options</h3>
+                      <button
+                        onClick={() => setActiveSheet(null)}
+                        className="p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+                      >
+                        <X className="w-5 h-5 text-white" />
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setActiveSheet("delete-confirm");
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 active:scale-[0.98] transition-all font-semibold"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                      <span>Remove from Highlight</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setActiveSheet(null);
+                        navigator.clipboard.writeText(
+                          window.location.origin + "/spark/" + spark.id,
+                        );
+                        showToast("🔗 Link copied!");
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 active:scale-[0.98] transition-all font-semibold"
+                    >
+                      <Copy className="w-5 h-5" />
+                      <span>Copy Link</span>
+                    </button>
+                  </div>
+                )}
+
                 {activeSheet === "delete-confirm" && (
                   <div className="px-5 pb-8 flex flex-col items-center text-center">
                     <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-4 border border-red-500/20">
                       <Trash2 className="w-8 h-8" />
                     </div>
-                    <h3 className="font-bold text-white text-xl mb-2">Delete Spark?</h3>
+                    <h3 className="font-bold text-white text-xl mb-2">
+                      {isHighlightMode ? "Remove from Highlight?" : "Delete Spark?"}
+                    </h3>
                     <p className="text-gray-400 text-sm mb-6 max-w-xs">
-                      This action cannot be undone. This Spark will be permanently removed from your feed and profile.
+                      {isHighlightMode
+                        ? "This spark will be removed from this highlight collection, but will remain in your archive."
+                        : "This action cannot be undone. This Spark will be permanently removed from your feed and profile."}
                     </p>
 
                     <div className="flex gap-3 w-full">
                       <button
-                        onClick={() => setActiveSheet(isOwnSpark ? "options" : null)}
+                        onClick={() => setActiveSheet(isHighlightMode ? "highlight-options" : (isOwnSpark ? "options" : null))}
                         className="flex-1 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold hover:bg-white/10 active:scale-[0.98] transition-all"
                       >
                         Cancel
@@ -2703,7 +2901,7 @@ export function SparkViewer({
                         onClick={handleDeleteConfirm}
                         className="flex-1 py-3.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg shadow-red-500/20 active:scale-[0.98] transition-all"
                       >
-                        Delete
+                        {isHighlightMode ? "Remove" : "Delete"}
                       </button>
                     </div>
                   </div>
